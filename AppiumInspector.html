@@ -1,0 +1,251 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <!-- JQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- JCanvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jcanvas/21.0.0/min/jcanvas.min.js"></script>
+    <!-- Bootstrap -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script>
+        window.onload = function () {
+            Draw("./assets/textures/phone.png");
+        };
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div id="session" class="well">session</div>
+        <button id="create_session">Create New Session</button>
+        <button id="delete_session">Delete Session</button>
+        <button id="screenshot">Screenshot</button>
+        <div class="row">
+            <div class="col-sm-7">
+                <div>
+                    <font id="cursor_pos">(0,0)</font>
+                    <font id="cursor_pos_percent" style="float:right;">(0,0)</font>
+                </div>
+                <div style="display:none">
+                    <img id="preview-pic" src="./assets/textures/phone.png">
+                </div>
+                <canvas id="preview" width="540px" height="960px" onmousemove="GetCanvasPos(event)" onmouseup="GetElements(event)" style="border:1px solid rgb(80, 80, 80)">
+                    Your browser does not support the HTML5 canvas tag.
+                </canvas>
+            </div>
+            <!-- /.col-sm-7 -->
+            <div class="col-sm-5">
+                <div class="panel-group" id="element-list"></div>
+            </div>
+            <!-- /.col-sm-5 -->
+        </div>
+    </div>
+
+</body>
+
+<script>
+    var sessionId = 0;
+    var cursor_x, cursor_y;
+    var deviceInfo;
+    var pagesource;
+    var elements = [], area = 0, best = null;
+    var query_name = null;
+    var query_type = null;
+
+    $("#create_session").click(function () {
+        CreateSession();
+    });
+
+    $("#delete_session").click(function () {
+        DeleteSession();
+    });
+
+    $("#screenshot").click(function () {
+        Screenshot();
+    });
+
+    function CreateSession() {
+        $.ajax({
+            url: "http://127.0.0.1:4723/wd/hub/session",
+            type: "POST",
+            dataType: "json",
+            data: {
+                desiredCapabilities:
+                    {
+                        newCommandTimeout: 600000,
+                        platformName: "Android",
+                        platformVersion: "6.0.1",
+                        deviceName: "Android Device",
+                        appPackage: "com.relianceco.cma.qaapp944",
+                        appActivity: "com.shoutem.app.MainActivity"
+                    }
+            },
+            async: false,
+            success: (function (data) {
+                sessionId = data.sessionId;
+                deviceInfo = data.value;
+                $("#session").text(sessionId);
+                Screenshot();
+            }),
+            error: (function (data) {
+                alert("Error!");
+            })
+        });
+    };
+
+    function DeleteSession() {
+        if (sessionId != 0) {
+            $.ajax({
+                url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId,
+                type: "DELETE",
+                async: false,
+                success: (function () {
+                    $("#session").text("session");
+                    sessionId = 0;
+                    Draw("./assets/textures/phone.png");
+                    $("#element-list").empty();
+                }),
+                error: (function () {
+                    alert("Error!");
+                })
+            });
+        }
+    };
+
+    function Screenshot() {
+        if (sessionId != 0) {
+            $.ajax({
+                url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/screenshot",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                success: (function (data) {
+                    Draw("data:image/png;base64," + data.value);
+                    GetPageSource();
+                }),
+                error: (function (data) {
+                    alert("Error!");
+                })
+            });
+        }
+    };
+
+    function Draw(url) {
+        $("#preview-pic").attr("src", url);
+        $("#preview").drawImage(
+            {
+                source: $("#preview-pic")[0],
+                width: 540,
+                height: 960,
+                fromCenter: false
+            }
+        );
+    };
+
+    function GetCanvasPos(e) {
+        if (sessionId != 0) {
+            var can = $("#preview");
+            cursor_x = (e.clientX - parseInt(can.offset().left)) * parseInt(deviceInfo.deviceScreenSize.split("x")[0]) / can.width();
+            cursor_y = (e.clientY - parseInt(can.offset().top)) * parseInt(deviceInfo.deviceScreenSize.split("x")[1]) / can.height();
+            $("#cursor_pos").text("(" + cursor_x + "," + cursor_y + ")");
+            $("#cursor_pos_percent").text("(" + parseInt((e.clientX - parseInt(can.offset().left)) * 100 / can.width()) + "%," + parseInt((e.clientY - parseInt(can.offset().top)) * 100 / can.height()) + "%)");
+        }
+    };
+
+    function GetPageSource() {
+        $.ajax({
+            url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/source",
+            type: "GET",
+            dataType: "json",
+            async: false,
+            success: (function (data) {
+                var str = data.value.replace(/\\\"/g, "\"");
+                pagesource = $($.parseXML(str));
+            }),
+            error: (function (data) {
+                alert("Error!");
+            })
+        });
+    }
+
+    function GetElements(e) {
+        if (sessionId != 0) {
+            $("#element-list").empty();
+            elements = [], area = 0, best = null;
+            GetNodes(pagesource);
+            if (best != null)
+                $("#element-list").append(AddElement2List(best, 1));
+            $.each(elements, function (i, e) {
+                $("#element-list").append(e);
+            });
+        }
+    };
+
+    function GetNodes(node) {
+        node.children().each(function () {
+            var chosen = false;
+            bounds = $(this).attr('bounds');
+            if (typeof bounds != "undefined") {
+                var bound = bounds.match(/\d+/g);
+                if (cursor_x > bound[0] && cursor_x < bound[2] && cursor_y > bound[1] && cursor_y < bound[3]) {
+                    t_area = (bound[2] - bound[0]) * (bound[3] - bound[1])
+                    if (best == null) {
+                        area = t_area;
+                        best = this;
+                    }
+                    if (area < t_area)
+                        elements.push(AddElement2List(this, 0));
+                    else if (best != this) {
+                        if (area == t_area) {
+                            if ($(this).attr("text") != "") {
+                                elements.push(AddElement2List(best, 0));
+                                best = this;
+                            }
+                        }
+                        else {
+                            area = t_area;
+                            elements.push(AddElement2List(best, 0));
+                            best = this;
+                        }
+                    }
+                }
+            }
+            if ($(this).children.length > 0)
+                GetNodes($(this));
+        });
+    }
+
+    function AddElement2List(node, type) {
+        var instance = $(node).attr("instance");
+        var resourceid = $(node).attr("resource-id");
+        var text = $(node).attr("text");
+        var eclass = $(node).attr("class");
+        var title = "[instance]&nbsp;" + instance;
+        var attrs = "";
+        if (text != "")
+            title = "[text]&nbsp;" + text;
+        else if (resourceid != "")
+            title = "[resource-id]&nbsp;" + resourceid;
+        $.each(node.attributes, function (i, attrib) {
+            attrs += attrib.name + ": " + attrib.value + "</br>";
+        });
+        if (type == 0)
+            return "<div class=\"panel panel-default\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + instance + "_" + eclass + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + instance + "_" + eclass + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+        else
+            return "<div class=\"panel panel-default\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + instance + "_" + eclass + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + instance + "_" + eclass + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+    }
+
+    function ActiveTarget(event) {
+        $("#element-list").find(".list-group-item.active").attr("class", "list-group-item");
+        $(event.target).parent(".list-group-item").attr("class", "list-group-item active");
+        var query = $(event.target).text().match(/\[(.*)\] (.*)/g);
+        query_name = query[1];
+        query_type = query[0];
+        alert(query_name);
+        alert(query_type);
+    }
+</script>
+
+</html>
