@@ -22,6 +22,7 @@
         <button id="create_session">Create New Session</button>
         <button id="delete_session">Delete Session</button>
         <button id="screenshot">Screenshot</button>
+        <button id="tap">Tap</button>
         <div class="row">
             <div class="col-sm-7">
                 <div>
@@ -42,10 +43,10 @@
             <!-- /.col-sm-5 -->
         </div>
     </div>
-
 </body>
 
 <script>
+    var platform = "Android";
     var sessionId = 0;
     var cursor_x, cursor_y;
     var deviceInfo;
@@ -53,6 +54,7 @@
     var elements = [], area = 0, best = null;
     var query_name = null;
     var query_type = null;
+    var t_element = 0;
 
     $("#create_session").click(function () {
         CreateSession();
@@ -64,6 +66,10 @@
 
     $("#screenshot").click(function () {
         Screenshot();
+    });
+
+    $("#tap").click(function () {
+        Tap();
     });
 
     function CreateSession() {
@@ -218,11 +224,12 @@
     }
 
     function AddElement2List(node, type) {
+        var el_class = $(node).attr("class");
+        var re_class = el_class.replace(new RegExp(".", "g"), "_");
         var instance = $(node).attr("instance");
         var resourceid = $(node).attr("resource-id");
         var text = $(node).attr("text");
-        var eclass = $(node).attr("class");
-        var title = "[instance]&nbsp;" + instance;
+        var title = "[class]&nbsp;" + el_class + ":" + instance;
         var attrs = "";
         if (text != "")
             title = "[text]&nbsp;" + text;
@@ -232,19 +239,76 @@
             attrs += attrib.name + ": " + attrib.value + "</br>";
         });
         if (type == 0)
-            return "<div class=\"panel panel-default\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + instance + "_" + eclass + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + instance + "_" + eclass + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
-        else
-            return "<div class=\"panel panel-default\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + instance + "_" + eclass + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + instance + "_" + eclass + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+            return "<div class=\"panel panel-default\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+        else {
+            var query = title.match(/\[(.*)\]\&nbsp\;(.*)/);
+            query_type = query[1];
+            query_name = query[2];
+            return "<div class=\"panel panel-default\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+        }
     }
 
     function ActiveTarget(event) {
         $("#element-list").find(".list-group-item.active").attr("class", "list-group-item");
         $(event.target).parent(".list-group-item").attr("class", "list-group-item active");
-        var query = $(event.target).text().match(/\[(.*)\] (.*)/g);
-        query_name = query[1];
-        query_type = query[0];
-        alert(query_name);
-        alert(query_type);
+        var query = $(event.target).text().match(/\[(.*)\]\s(.*)/);
+        query_type = query[1];
+        query_name = query[2];
+    }
+
+    function FindElement() {
+        locator = null;
+        selector = null;
+        if (platform == "Android") {
+            switch (query_type) {
+                case "resource-id":
+                    locator = "id";
+                    selector = query_name;
+                    break;
+                case "text":
+                    locator = "-android uiautomator";
+                    selector = "new UiSelector().descriptionContains(\"" + query_name + "\");new UiSelector().textContains(\"" + query_name + "\");"
+                    break;
+                case "class":
+                    locator = "-android uiautomator";
+                    var value = query_name.match(/(.*)\:(.*)/);
+                    selector = "new UiSelector().className(\"" + value[1] + "\").instance(" + value[2] + ");";
+                    break;
+            }
+        }
+        return $.ajax({
+            url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/element",
+            type: "POST",
+            dataType: "json",
+            data: {
+                using: locator,
+                value: selector
+            },
+            async: false,
+            success: (function (data) {
+                t_element = data.value.ELEMENT;
+            }),
+            error: (function (data) {
+                alert("Error!");
+            })
+        });
+    }
+
+    function Tap() {
+        if(FindElement().status == 200){
+            $.ajax({
+                url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/element/" + t_element + "/click",
+                type: "POST",
+                dataType: "json",
+                async: false,
+                success: (function (data) {
+                    Screenshot();
+                }),
+                error: (function (data) {
+                    alert("Error!");
+                })
+            });
+        }
     }
 </script>
 
