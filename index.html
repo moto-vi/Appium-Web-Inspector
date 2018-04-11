@@ -1,0 +1,167 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <!-- JQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- JCanvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jcanvas/21.0.0/min/jcanvas.min.js"></script>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- Buttons libs -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Buttons/2.0.0/css/buttons.min.css">
+    <!-- font-awesome - font icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Bootstrap - tooltip -->
+    <script>
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
+    <!-- Blocky -->
+    <script src="assets/js/blockly_compressed.js"></script>
+    <script src="assets/js/blocks_compressed.js"></script>
+    <script src="assets/js/python_compressed.js"></script>
+    <script src="assets/js/storage.js"></script>
+    <script src="assets/js/msg/js/en.js"></script>
+    <script src="assets/js/blocks.js"></script>
+    <script src="assets/js/python.js"></script>
+    <xml id="toolbox" style="display: none">
+        <category name="Action" colour="0">
+            <block type="click"></block>
+            <block type="enter"></block>
+            <block type="scroll"></block>
+            <block type="scroll_to"></block>
+            <block type="back"></block>
+        </category>
+        <category name="Element" colour="200">
+            <block type="element"></block>
+            <block type="current_element"></block>
+            <block type="math_number"></block>
+            <block type="text"></block>
+        </category>
+        <category name="Condition" colour="100">
+            <block type="status"></block>
+            <block type="attribute"></block>
+        </category>
+        <category name="Logic" colour="250">
+            <block type="wait_for"></block>
+            <block type="logic_compare"></block>
+            <block type="logic_operation"></block>
+            <block type="logic_boolean"></block>
+            <block type="controls_if"></block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for"></block>
+        </category>
+        <category name="System" colour="50">
+            <block type="screenshot"></block>
+            <block type="wait"></block>
+            <block type="upload_result"></block>
+        </category>
+        <category name="Variables" colour="330" custom="VARIABLE"></category>
+    </xml>
+    <!-- CSS -->
+    <style type="text/css">
+        .button-raised.button-primary {
+            margin-right: 5px;
+            width: 30px;
+            height: 30px;
+        }
+
+        body {
+            overflow: scroll;
+        }
+    </style>
+    <script>
+        window.onload = function () {
+            InitCanvas(1.778);
+            Draw("./assets/textures/phone.png");
+        };
+    </script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div id="session" class="well">session</div>
+        <input type="color" id="colorpicker" value="#ff0000" style="display:none;">
+        <div class="row">
+            <!-- /.col-sm-4 -->
+            <div id="device_controler" class="col-sm-4">
+                <div class="btn-group-vertical" style="width: 10%">
+                    <button id="button_create_session" data-toggle="tooltip" data-placement="right" title="Create session" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                    <button id="button_delete_session" data-toggle="tooltip" data-placement="right" title="Delete session" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-minus"></i>
+                    </button>
+                    <button id="button_screenshot" data-toggle="tooltip" data-placement="right" title="Redraw" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-repeat"></i>
+                    </button>
+                    <button id="button_colorpicker" data-toggle="tooltip" data-placement="right" title="Color" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-paint-brush"></i>
+                    </button>
+                    <button id="button_tap" data-toggle="tooltip" data-placement="right" title="Click" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-hand-pointer-o"></i>
+                    </button>
+                    <button id="button_back" data-toggle="tooltip" data-placement="right" title="Go back" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-reply"></i>
+                    </button>
+                    <button id="button_scroll_up" data-toggle="tooltip" data-placement="right" title="Scroll up" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-arrow-up"></i>
+                    </button>
+                    <button id="button_scroll_down" data-toggle="tooltip" data-placement="right" title="Scroll down" class="btn btn-default button button-circle button-raised button-primary">
+                        <i class="fa fa-arrow-down"></i>
+                    </button>
+                    <div>
+                        <font id="cursor_pos">(0,0)</font>
+                    </div>
+                    <div>
+                        <font id="cursor_pos_percent">(0,0)</font>
+                    </div>
+                </div>
+                <div style="display:none">
+                    <img id="preview-pic" src="./assets/textures/phone.png">
+                </div>
+                <canvas id="preview" onmousemove="GetCanvasPos(event)" onmouseup="GetElements(event)" style="border:1px solid rgb(80, 80, 80); float: right; width: 90%;">
+                    Your browser does not support the HTML5 canvas tag.
+                </canvas>
+                <div class="panel-group" id="element-list"></div>
+            </div>
+            <!-- /.col-sm-8 -->
+            <div class="col-sm-8">
+                <div id="blocklyDiv" style="height: 100%; width: 100%;"></div>
+                <button id="generate" onclick="alert(Blockly.Python.workspaceToCode(workspace));">code</button>
+                <button id="save" onclick="alert(Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));">save</button>
+                <script>
+                    var workspace = Blockly.inject('blocklyDiv',
+                        {
+                            toolbox: document.getElementById('toolbox'),
+                            grid:
+                                {
+                                    spacing: 20,
+                                    length: 5,
+                                    colour: '#ccc',
+                                    snap: true
+                                },
+                            zoom:
+                                {
+                                    controls: true,
+                                    wheel: true,
+                                    startScale: 1.0,
+                                    maxScale: 3,
+                                    minScale: 0.3,
+                                    scaleSpeed: 1.2
+                                },
+                            trashcan: true
+                        });
+                </script>
+            </div>
+        </div>
+    </div>
+</body>
+
+<!-- Inspector -->
+<script src="assets/js/Inspector.js"></script>
+
+</html>
