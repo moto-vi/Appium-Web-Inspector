@@ -180,6 +180,7 @@ function Screenshot() {
                     Draw("data:image/png;base64," + data.value);
                     GetPageSource();
                     currentNode(false);
+                    ShowBlockly();
                 }),
                 error: (function (data) {
                     alert("Error!");
@@ -245,7 +246,8 @@ function SetNodes() {
     $.each(elements, function (i, e) {
         $("#element-list").append(AddElement2List(e, i));
     });
-    currentNode(true);
+    if(elements.length != 0)
+        currentNode(true);
 }
 
 function GetNodes(node) {
@@ -578,8 +580,7 @@ function ShowBlockly(event) {
     $("#blocklyModule").css("display", "inline");
     $("#element-list").css("display", "none");
     $("li.active").attr("class", "noactive");
-    if (typeof event != "undefined")
-        $(event.target).parent().attr("class", "active");
+    $("a:contains('Blockly')").parent().attr("class", "active");
     Blockly.mainWorkspace.render();
 }
 
@@ -587,8 +588,7 @@ function ShowNodes(event) {
     $("#blocklyModule").css("display", "none");
     $("#element-list").css("display", "inline");
     $("li.active").attr("class", "noactive");
-    if (typeof event != "undefined")
-        $(event.target).parent().attr("class", "active");
+    $("a:contains('Nodes')").parent().attr("class", "active");  
     SetNodes();
 }
 
