@@ -171,7 +171,7 @@
                     <div style="display:none">
                         <img id="preview-pic" src="./assets/textures/phone.png">
                     </div>
-                    <canvas id="preview" onmousemove="GetCanvasPos(event)" onmouseup="GetElements(event)" style="border:1px solid rgb(80, 80, 80); float: left; width: 90%;">
+                    <canvas id="preview" onmousemove="GetCanvasPos(event)" onmouseup="GetElements(event)" style="border:1px solid rgb(80, 80, 80); float: left; height: 85%;">
                         Your browser does not support the HTML5 canvas tag.
                     </canvas>
                 </div>
@@ -194,7 +194,7 @@
                     <a id="button_export_blockly" class="button" onclick="downloadFile(event,$('#script_name').val()+'.xml', Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));">Export Blockly</a>
                     <a id="button_export_script" class="button" onclick="downloadFile(event,$('#script_name').val()+'.py', Blockly.Python.workspaceToCode(workspace));">Export Script</a>
                     <button id="button_clear_blockly" class="button" onclick="clearWorkspace();">Clear Blockly</button>
-                    <div id="blocklyDiv" style="height: 100%; width: 100%;"></div>
+                    <div id="blocklyDiv" style="height: 80%;width: 100%;"></div>
                 </div>
                 <script>
                     var workspace = Blockly.inject('blocklyDiv',
