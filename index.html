@@ -12,12 +12,16 @@
     <!-- Buttons libs -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Buttons/2.0.0/css/buttons.min.css">
     <!-- font-awesome - font icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.10/css/all.css" integrity="sha384-+d0P83n9kaQMCwj8F4RJB66tzIwOKmrdb46+porD/OvrJ+37WqIM7UoBtwHO6Nlg"
+        crossorigin="anonymous">
     <!-- Bootstrap - tooltip -->
     <script>
         $(document).ready(function () {
             $('[data-toggle="tooltip"]').tooltip();
         });
+        window.onbeforeunload = function (event) {
+            return "Are you sure to close the page.Everything not saved will be lost.";
+        };
     </script>
     <!-- Blocky -->
     <script src="assets/js/blockly_compressed.js"></script>
@@ -63,14 +67,23 @@
     </xml>
     <!-- CSS -->
     <style type="text/css">
+        .button {
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
         .button-raised.button-primary {
-            margin-right: 5px;
             width: 30px;
             height: 30px;
         }
 
         body {
             overflow: scroll;
+        }
+
+        .tooltip-inner {
+            white-space: nowrap;
+            max-width: none;
         }
     </style>
     <script>
@@ -83,56 +96,106 @@
 
 <body>
     <div class="container-fluid">
-        <div id="session" class="well">session</div>
+        <div class="well">
+            <div>
+                <h4 style="margin-top: 0px;">Device Information:</h4>
+                <select onchange="SetSelect(event)">
+                    <option value="Android">Android</option>
+                    <option value="iOS">iOS</option>
+                </select>
+                <input id="device_name" placeholder="*Device Name"></input>
+                <input id="os_version" placeholder="*OS Version"></input>
+                <div id="Android" style="display:inline">
+                    <input id="package_name" placeholder="PackageName"></input>
+                    <input id="app_activity" placeholder="AppActivity"></input>
+                </div>
+                <div id="iOS" style="display:none"></div>
+            </div>
+            <h5 id="session" style="display:none;">session</h5>
+        </div>
         <input type="color" id="colorpicker" value="#ff0000" style="display:none;">
         <div class="row">
             <!-- /.col-sm-4 -->
             <div id="device_controler" class="col-sm-4">
-                <div class="btn-group-vertical" style="width: 10%">
-                    <button id="button_create_session" data-toggle="tooltip" data-placement="right" title="Create session" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-plus"></i>
-                    </button>
-                    <button id="button_delete_session" data-toggle="tooltip" data-placement="right" title="Delete session" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-minus"></i>
-                    </button>
-                    <button id="button_screenshot" data-toggle="tooltip" data-placement="right" title="Redraw" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-repeat"></i>
-                    </button>
-                    <button id="button_colorpicker" data-toggle="tooltip" data-placement="right" title="Color" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-paint-brush"></i>
-                    </button>
-                    <button id="button_tap" data-toggle="tooltip" data-placement="right" title="Click" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-hand-pointer-o"></i>
-                    </button>
-                    <button id="button_back" data-toggle="tooltip" data-placement="right" title="Go back" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-reply"></i>
-                    </button>
-                    <button id="button_scroll_up" data-toggle="tooltip" data-placement="right" title="Scroll up" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-arrow-up"></i>
-                    </button>
-                    <button id="button_scroll_down" data-toggle="tooltip" data-placement="right" title="Scroll down" class="btn btn-default button button-circle button-raised button-primary">
-                        <i class="fa fa-arrow-down"></i>
-                    </button>
-                    <div>
-                        <font id="cursor_pos">(0,0)</font>
-                    </div>
-                    <div>
-                        <font id="cursor_pos_percent">(0,0)</font>
+                <div class="row">
+                    <div class="btn-group" style="float: left; margin-left: 45px;">
+                        <button id="button_create_session" data-toggle="tooltip" data-placement="top" title="Create session" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                        <button id="button_delete_session" data-toggle="tooltip" data-placement="top" title="Delete session" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fa fa-minus"></i>
+                        </button>
+                        <button id="button_colorpicker" data-toggle="tooltip" data-placement="top" title="Color" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <button id="button_redraw" data-toggle="tooltip" data-placement="top" title="Redraw" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <div style="float: right; margin-left: 10px;">
+                            <font id="cursor_pos">(0,0)</font>
+                            <font id="cursor_pos_percent">(0,0)</font>
+                        </div>
                     </div>
                 </div>
-                <div style="display:none">
-                    <img id="preview-pic" src="./assets/textures/phone.png">
+                <div class="view">
+                    <div class="btn-group-vertical" style="float: left;">
+                        <button id="button_click" data-toggle="tooltip" data-placement="right" title="Click" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-hand-pointer"></i>
+                        </button>
+                        <button id="button_back" data-toggle="tooltip" data-placement="right" title="Back (Android only)" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-reply"></i>
+                        </button>
+                        <button id="button_scroll_up" data-toggle="tooltip" data-placement="right" title="Scroll up" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-angle-double-up"></i>
+                        </button>
+                        <button id="button_scroll_down" data-toggle="tooltip" data-placement="right" title="Scroll down" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-angle-double-down"></i>
+                        </button>
+                        <button id="button_scroll_up_lightly" data-toggle="tooltip" data-placement="right" title="Scroll up lightly" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-angle-up"></i>
+                        </button>
+                        <button id="button_scroll_down_lightly" data-toggle="tooltip" data-placement="right" title="Scroll down lightly" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-angle-down"></i>
+                        </button>
+                        <button id="button_wait_for" data-toggle="tooltip" data-placement="right" title="Wait for element to appear(or disappear)"
+                            class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fab fa-apper"></i>
+                        </button>
+                        <button id="button_screenshot" data-toggle="tooltip" data-placement="right" title="Get a screenshot" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button id="button_enter" data-toggle="tooltip" data-placement="right" title="Enter" class="btn btn-default button button-square button-raised button-primary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                    <div style="display:none">
+                        <img id="preview-pic" src="./assets/textures/phone.png">
+                    </div>
+                    <canvas id="preview" onmousemove="GetCanvasPos(event)" onmouseup="GetElements(event)" style="border:1px solid rgb(80, 80, 80); float: left; width: 90%;">
+                        Your browser does not support the HTML5 canvas tag.
+                    </canvas>
                 </div>
-                <canvas id="preview" onmousemove="GetCanvasPos(event)" onmouseup="GetElements(event)" style="border:1px solid rgb(80, 80, 80); float: right; width: 90%;">
-                    Your browser does not support the HTML5 canvas tag.
-                </canvas>
-                <div class="panel-group" id="element-list"></div>
             </div>
             <!-- /.col-sm-8 -->
             <div class="col-sm-8">
-                <div id="blocklyDiv" style="height: 100%; width: 100%;"></div>
-                <button id="generate" onclick="alert(Blockly.Python.workspaceToCode(workspace));">code</button>
-                <button id="save" onclick="alert(Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));">save</button>
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active">
+                        <a href="javascript:void(0);" onclick="ShowBlockly(event)" style="padding-bottom: 5px; padding-top: 5px;">Blockly</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="javascript:void(0);" onclick="ShowNodes(event)" style="padding-bottom: 5px; padding-top: 5px;">Nodes</a>
+                    </li>
+                    <li id="current_node" class="alert alert-info" style="float: left;display: none;padding: 5px;"></li>
+                </ul>
+                <div id="blocklyModule">
+                    <input id="script_name" type="text" placeholder="*Script Name" style="font-size:18px;font-weight:500;"></input>
+                    <input id="import_blockly" type="file" style="display: none;" accept="application/xml" onchange="importDom();"></input>
+                    <button id="button_import_blockly" class="button" onclick="importer();">Import Blockly</button>
+                    <a id="button_export_blockly" class="button" onclick="downloadFile(event,$('#script_name').val()+'.xml', Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));">Export Blockly</a>
+                    <a id="button_export_script" class="button" onclick="downloadFile(event,$('#script_name').val()+'.py', Blockly.Python.workspaceToCode(workspace));">Export Script</a>
+                    <button id="button_clear_blockly" class="button" onclick="clearWorkspace();">Clear Blockly</button>
+                    <div id="blocklyDiv" style="height: 100%; width: 100%;"></div>
+                </div>
                 <script>
                     var workspace = Blockly.inject('blocklyDiv',
                         {
@@ -156,6 +219,7 @@
                             trashcan: true
                         });
                 </script>
+                <div class="panel-group" id="element-list" style="display: none;"></div>
             </div>
         </div>
     </div>

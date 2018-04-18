@@ -4,7 +4,7 @@ Blockly.Blocks['element'] = {
         .setCheck("Number")
         .appendField(new Blockly.FieldTextInput("element"), "name")
         .appendField(":")
-        .appendField(new Blockly.FieldDropdown([["UI","ui"], ["XPath","xpath"], ["CSS","css"]]), "type")
+        .appendField(new Blockly.FieldDropdown([["Text","text"], ["ID","id"], ["Class","class"], ["XPath","xpath"], ["CSS","css"]]), "type")
         .appendField("=")
         .appendField(new Blockly.FieldTextInput("value"), "value");
     this.setInputsInline(false);
@@ -75,7 +75,7 @@ Blockly.Blocks['status'] = {
         .setCheck("element");
     this.appendDummyInput()
         .appendField("is")
-        .appendField(new Blockly.FieldDropdown([["appears","appears"], ["hiden","hiden"], ["enabled","enabled"], ["disabled","disabled"]]), "status");
+        .appendField(new Blockly.FieldDropdown([["appears","appears"], ["disappears","disappears"], ["enabled","enabled"], ["disabled","disabled"]]), "status");
     this.setInputsInline(true);
     this.setOutput(true, "Boolean");
     this.setColour(100);
