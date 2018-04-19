@@ -64,6 +64,10 @@ $("#button_enter").click(function () {
     Enter();
 });
 
+$("#button_app").click(function () {
+    $("#app").click();
+});
+
 $('[data-toggle="tooltip"]').tooltip({
     trigger: 'hover'
 });
@@ -83,9 +87,10 @@ function CreateSession() {
     var platformName = $("select").val();
     var platformVersion = "7.0";
     var deviceName = "Android Device";
-    var appPackage = "com.android.settings";
-    var appActivity = "com.android.settings.Settings";
+    var appPackage = "";
+    var appActivity = "";
     var automationName = "uiautomator2";
+    var app = "";
     if ($("#device_name").val() && $("#os_version").val()) {
         deviceName = $("#device_name").val();
         platformVersion = $("#os_version").val();
@@ -103,24 +108,53 @@ function CreateSession() {
             appPackage = $("#package_name").val();
         if ($("#app_activity").val())
             appActivity = $("#app_activity").val();
+        if ($("#android_app").val())
+            app = $("#android_app").val();
+
+    }
+    var desiredcaps = {}
+    if (platform == "Android") {
+        desiredcaps = {
+            desiredCapabilities:
+                {
+                    newCommandTimeout: 600000,
+                    platformName: platformName,
+                    platformVersion: platformVersion,
+                    deviceName: deviceName,
+                    automationName: 'Appium'
+                }
+        }
+        if (app) {
+            desiredcaps['desiredCapabilities']['app'] = app;
+            if (appPackage && appActivity) {
+                desiredcaps['desiredCapabilities']['appPackage'] = appPackage;
+                desiredcaps['desiredCapabilities']['appActivity'] = appActivity;
+            }
+        }
+        else {
+            desiredcaps['desiredCapabilities']['appPackage'] = 'com.android.settings.Settings';
+            desiredcaps['desiredCapabilities']['appActivity'] = 'com.android.settings';
+        }
+    }
+    else {
+        desiredcaps = {
+            desiredCapabilities:
+                {
+                    newCommandTimeout: 600000,
+                    platformName: platformName,
+                    platformVersion: platformVersion,
+                    deviceName: deviceName,
+                    automationName: 'XCUITest',
+                    app: app
+                }
+        }
     }
     if (bool) {
         $.ajax({
             url: "http://127.0.0.1:4723/wd/hub/session",
             type: "POST",
             dataType: "json",
-            data: {
-                desiredCapabilities:
-                    {
-                        newCommandTimeout: 600000,
-                        platformName: platformName,
-                        platformVersion: platformVersion,
-                        deviceName: deviceName,
-                        //automationName: 'uiautomator2',
-                        appPackage: appPackage,
-                        appActivity: appActivity
-                    }
-            },
+            data: desiredcaps,
             async: false,
             success: (function (data) {
                 sessionId = data.sessionId;
@@ -246,7 +280,7 @@ function SetNodes() {
     $.each(elements, function (i, e) {
         $("#element-list").append(AddElement2List(e, i));
     });
-    if(elements.length != 0)
+    if (elements.length != 0)
         currentNode(true);
 }
 
@@ -588,7 +622,7 @@ function ShowNodes(event) {
     $("#blocklyModule").css("display", "none");
     $("#element-list").css("display", "inline");
     $("li.active").attr("class", "noactive");
-    $("a:contains('Nodes')").parent().attr("class", "active");  
+    $("a:contains('Nodes')").parent().attr("class", "active");
     SetNodes();
 }
 

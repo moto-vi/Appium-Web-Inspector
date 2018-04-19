@@ -105,11 +105,15 @@
                 </select>
                 <input id="device_name" placeholder="*Device Name"></input>
                 <input id="os_version" placeholder="*OS Version"></input>
-                <div id="Android" style="display:inline">
-                    <input id="package_name" placeholder="PackageName"></input>
-                    <input id="app_activity" placeholder="AppActivity"></input>
+                <h3 class="label label-default" style="padding: 5px;padding-left: 10px;padding-right: 10px;">App</h3>
+                <div id="Android" style="display:inline;">
+                    <input id="android_app" placeholder="App file path" data-toggle="tooltip" data-placement="top" title="The app will be installed on the device.(Optional)"></input>
+                    <input id="package_name" placeholder="PackageName" data-toggle="tooltip" data-placement="top" title="The package name of app.(Optional)"></input>
+                    <input id="app_activity" placeholder="AppActivity" data-toggle="tooltip" data-placement="top" title="The launch activity of app.(Optional)"></input>
                 </div>
-                <div id="iOS" style="display:none"></div>
+                <div id="iOS" style="display: none;">
+                    <input id="ios_app" placeholder="App file path" data-toggle="tooltip" data-placement="top" title="If you are using simulator, please enter *.app instead of *.ipa."></input>
+                </div>
             </div>
             <h5 id="session" style="display:none;">session</h5>
         </div>
