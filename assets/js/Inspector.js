@@ -133,8 +133,14 @@ function CreateSession() {
             }
         }
         else {
-            desiredcaps['desiredCapabilities']['appPackage'] = 'com.android.settings.Settings';
-            desiredcaps['desiredCapabilities']['appActivity'] = 'com.android.settings';
+            if (appPackage && appActivity) {
+                desiredcaps['desiredCapabilities']['appPackage'] = appPackage;
+                desiredcaps['desiredCapabilities']['appActivity'] = appActivity;
+            }
+            else {
+                desiredcaps['desiredCapabilities']['appPackage'] = 'com.android.settings.Settings';
+                desiredcaps['desiredCapabilities']['appActivity'] = 'com.android.settings';
+            }
         }
     }
     else {
