@@ -8,6 +8,7 @@ var query_name = null;
 var query_type = null;
 var element_key = 0;
 var canvas_width = 0, canvas_height = 0;
+var url = "http://127.0.0.1:4723/wd/hub/session/";
 
 $("#button_create_session").click(function () {
     CreateSession();
@@ -123,7 +124,7 @@ function CreateSession() {
                     deviceName: deviceName,
                     automationName: 'Appium'
                 }
-        }
+        };
         if (app) {
             desiredcaps['desiredCapabilities']['app'] = app;
             if (appPackage && appActivity) {
@@ -151,7 +152,7 @@ function CreateSession() {
     }
     if (bool) {
         $.ajax({
-            url: "http://127.0.0.1:4723/wd/hub/session",
+            url: url,
             type: "POST",
             dataType: "json",
             data: desiredcaps,
@@ -159,7 +160,7 @@ function CreateSession() {
             success: (function (data) {
                 sessionId = data.sessionId;
                 $.ajax({
-                    url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId,
+                    url: url + sessionId,
                     type: "GET",
                     dataType: "json",
                     async: false,
@@ -184,7 +185,7 @@ function CreateSession() {
 function DeleteSession() {
     if (sessionId != 0) {
         $.ajax({
-            url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId,
+            url: url + sessionId,
             type: "DELETE",
             async: false,
             success: (function () {
@@ -205,7 +206,7 @@ function Screenshot() {
         if (sessionId != 0) {
             $("#element-list").empty();
             $.ajax({
-                url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/screenshot",
+                url: url + sessionId + "/screenshot",
                 type: "GET",
                 dataType: "json",
                 async: false,
@@ -251,7 +252,7 @@ function GetCanvasPos(e) {
 
 function GetPageSource() {
     $.ajax({
-        url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/source",
+        url: url + sessionId + "/source",
         type: "GET",
         dataType: "json",
         async: false,
@@ -394,7 +395,7 @@ function FindElement() {
         }
     }
     return $.ajax({
-        url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/elements",
+        url: url + sessionId + "/elements",
         type: "POST",
         dataType: "json",
         data: {
@@ -416,7 +417,7 @@ function FindElement() {
 function Tap() {
     if (FindElement().status == 200) {
         // $.ajax({
-        //     url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/element/" + element_key + "/click",
+        //     url: url + sessionId + "/element/" + element_key + "/click",
         //     type: "POST",
         //     dataType: "json",
         //     async: false,
@@ -432,7 +433,7 @@ function Tap() {
         //     })
         // });
         $.ajax({
-            url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/touch/click",
+            url: url + sessionId + "/touch/click",
             type: "POST",
             dataType: "json",
             async: false,
@@ -455,7 +456,7 @@ function Tap() {
         // var x = (bound[2] - bound[0]) / 2 + Number(bound[0]);
         // var y = (bound[3] - bound[1]) / 2 + Number(bound[1]);
         // $.ajax({
-        //     url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/touch/perform",
+        //     url: url + sessionId + "/touch/perform",
         //     type: "POST",
         //     dataType: "json",
         //     async: false,
@@ -543,7 +544,7 @@ function DrawRect(bounds) {
 function Back() {
     if (sessionId != 0) {
         $.ajax({
-            url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/back",
+            url: url + sessionId + "/back",
             type: "POST",
             dataType: "json",
             async: false,
@@ -562,7 +563,7 @@ function Back() {
 function Scroll_Y(start, offset) {
     if (sessionId != 0) {
         $.ajax({
-            url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/touch/perform",
+            url: url + sessionId + "/touch/perform",
             type: "POST",
             dataType: "json",
             async: false,
@@ -677,7 +678,7 @@ function clearWorkspace() {
 function Enter() {
     var text = prompt("Enter", "");
     $.ajax({
-        url: "http://127.0.0.1:4723/wd/hub/session/" + sessionId + "/element/" + element_key + "/value",
+        url: url + sessionId + "/element/" + element_key + "/value",
         type: "POST",
         dataType: "json",
         async: false,
