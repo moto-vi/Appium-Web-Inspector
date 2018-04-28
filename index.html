@@ -103,16 +103,24 @@
                     <option value="Android">Android</option>
                     <option value="iOS">iOS</option>
                 </select>
-                <input id="device_name" placeholder="*Device Name"></input>
-                <input id="os_version" placeholder="*OS Version"></input>
+                <input id="device_name" placeholder="*Device Name" autocomplete="on"></input>
+                <input id="os_version" placeholder="*OS Version" autocomplete="on"></input>
                 <h3 class="label label-default" style="padding: 5px;padding-left: 10px;padding-right: 10px;">App</h3>
                 <div id="Android" style="display:inline;">
-                    <input id="android_app" placeholder="App file path" data-toggle="tooltip" data-placement="top" title="The app will be installed on the device.(Optional)"></input>
-                    <input id="package_name" placeholder="PackageName" data-toggle="tooltip" data-placement="top" title="The package name of app.(Optional)"></input>
-                    <input id="app_activity" placeholder="AppActivity" data-toggle="tooltip" data-placement="top" title="The launch activity of app.(Optional)"></input>
+                    <input id="android_app" autocomplete="on" style="width: 30%; min-width: 200px;" placeholder="App file path" data-toggle="tooltip"
+                        data-placement="top" title="The app will be installed on the device.(Optional)"></input>
+                    <input id="package_name" autocomplete="on" placeholder="PackageName" data-toggle="tooltip" data-placement="top" title="The package name of app.(Optional)"></input>
+                    <input id="app_activity" autocomplete="on" placeholder="AppActivity" data-toggle="tooltip" data-placement="top" title="The launch activity of app.(Optional)"></input>
                 </div>
                 <div id="iOS" style="display: none;">
-                    <input id="ios_app" placeholder="App file path" data-toggle="tooltip" data-placement="top" title="If you are using simulator, please enter *.app instead of *.ipa."></input>
+                    <input id="ios_app" autocomplete="on" style="width: 30%; min-width: 200px;" placeholder="App file path" data-toggle="tooltip"
+                        data-placement="top" title="If you are using simulator, please enter *.app instead of *.ipa."></input>
+                    <h4 style="display: inline;">or</h4>
+                    <input id="ios_bundleid" autocomplete="on" style="width: 30%; min-width: 200px;" placeholder="BundleID" data-toggle="tooltip"
+                        data-placement="top" title="Bundle ID for iOS"></input>
+                    <input id="ios_udid" autocomplete="on" style="width: 30%; min-width: 387px; margin-top: 4px;" placeholder="Real device identifier"
+                        data-toggle="tooltip" data-placement="bottom" title="Enter the device identifier if you test on a real device"></input>
+                    <a href="https://github.com/appium/appium-xcuitest-driver/blob/master/docs/real-device-config.md" target="_blank">Follow the tutorial to setup your real device</a>
                 </div>
             </div>
             <h5 id="session" style="display:none;">session</h5>

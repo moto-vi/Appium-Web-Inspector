@@ -2,12 +2,13 @@ var platform = "Android";
 var sessionId = 0;
 var canvas_x, canvas_y;
 var deviceInfo;
-var pagesource;
-var elements = [], area = 0;
+var elements = [], selected = [], node_index = 0, area = 0;
 var query_name = null;
 var query_type = null;
 var element_key = 0;
 var canvas_width = 0, canvas_height = 0;
+var platformName;
+var screen_w, screen_h;
 
 $("#button_create_session").click(function () {
     CreateSession();
@@ -83,14 +84,16 @@ function InitCanvas(scale) {
 }
 
 function CreateSession() {
+    platformName = $("select").val();
     var bool = true;
-    var platformName = $("select").val();
     var platformVersion = "7.0";
     var deviceName = "Android Device";
     var appPackage = "";
     var appActivity = "";
     var automationName = "uiautomator2";
     var app = "";
+    var bundleid = "";
+    var udid = "";
     if ($("#device_name").val() && $("#os_version").val()) {
         deviceName = $("#device_name").val();
         platformVersion = $("#os_version").val();
@@ -112,7 +115,16 @@ function CreateSession() {
             app = $("#android_app").val();
 
     }
-    var desiredcaps = {}
+    else {
+        if ($("#ios_udid").val())
+            udid = $("#ios_udid").val();
+        if ($("#ios_app").val())
+            app = $("#ios_app").val();
+        if ($("#ios_bundleid").val())
+            bundleid = $("#ios_bundleid").val();
+    }
+    platform = platformName;
+    var desiredcaps = {};
     if (platform == "Android") {
         desiredcaps = {
             desiredCapabilities:
@@ -141,13 +153,17 @@ function CreateSession() {
             desiredCapabilities:
                 {
                     newCommandTimeout: 600000,
+                    deviceName: deviceName,
+                    udid: udid,
                     platformName: platformName,
                     platformVersion: platformVersion,
-                    deviceName: deviceName,
-                    automationName: 'XCUITest',
-                    app: app
+                    automationName: 'XCUITest'
                 }
         }
+        if (app)
+            desiredcaps['desiredCapabilities']['app'] = app;
+        else
+            desiredcaps['desiredCapabilities']['bundleId'] = bundleid;
     }
     if (bool) {
         $.ajax({
@@ -240,12 +256,11 @@ function GetCanvasPos(e) {
     if (sessionId != 0) {
         var can = $("#preview");
         cursor_x = e.clientX + document.body.scrollLeft;
-        canvas_x = parseInt((cursor_x - parseInt(can.offset().left)) * parseInt(deviceInfo.deviceScreenSize.split("x")[0]) / can.width());
         cursor_y = e.clientY + document.body.scrollTop;
-        canvas_y = parseInt((cursor_y - parseInt(can.offset().top)) * parseInt(deviceInfo.deviceScreenSize.split("x")[1]) / can.height());
+        canvas_x = parseInt((cursor_x - parseInt(can.offset().left)) * parseInt(screen_w) / can.width());
+        canvas_y = parseInt((cursor_y - parseInt(can.offset().top)) * parseInt(screen_h) / can.height());
         $("#cursor_pos").text("(" + canvas_x + "," + canvas_y + ")");
         $("#cursor_pos_percent").text("(" + parseInt((cursor_x - parseInt(can.offset().left)) * 100 / can.width()) + "%," + parseInt((cursor_y - parseInt(can.offset().top)) * 100 / can.height()) + "%)");
-        //console.log(canvas_x, canvas_y);
     }
 };
 
@@ -257,7 +272,19 @@ function GetPageSource() {
         async: false,
         success: (function (data) {
             var str = data.value.replace(/\\\"/g, "\"");
-            pagesource = $($.parseXML(str));
+            var pagesource = $($.parseXML(str));
+            if (platformName == "Android") {
+                screen_w = deviceInfo.deviceScreenSize.split("x")[0];
+                screen_h = deviceInfo.deviceScreenSize.split("x")[1];
+            }
+            else {
+                node = pagesource.find('XCUIElementTypeApplication');
+                screen_w = $(node).attr('width');
+                screen_h = $(node).attr('height');
+            }
+            node_index = 0;
+            elements.splice(0, elements.length);
+            GetNodes(pagesource, elements);
         }),
         error: (function (data) {
             alert("Error!");
@@ -265,86 +292,160 @@ function GetPageSource() {
     });
 }
 
-function GetElements(e) {
+function GetElements() {
     if (sessionId != 0) {
         $("#element-list").empty();
-        elements = [], area = 0;
-        GetNodes(pagesource);
+        selected = [], area = 0;
+        SelectNodes();
         SetNodes();
-        DrawRect($(elements[0]).attr('bounds'));
+        DrawRect($(selected[0]));
     }
 };
 
+function GetBound(node) {
+    if (platformName == "Android") {
+        if (node.attr('enabled') == 'true') {
+            bounds = node.attr('bounds');
+            return bounds.match(/\d+/g);
+        }
+        else
+            return null;
+    }
+    else {
+        if (node.attr('visible') == "true" && typeof node.attr('x') != "undefined" && typeof node.attr('y') != "undefined" && typeof node.attr('width') != "undefined" && typeof node.attr('height') != "undefined") {
+            var x1 = parseInt(node.attr('x'));
+            var y1 = parseInt(node.attr('y'));
+            var x2 = x1 + parseInt(node.attr('width'));
+            var y2 = y1 + parseInt(node.attr('height'));
+            return [x1, y1, x2, y2];
+        }
+        else
+            return null;
+    }
+}
+
+function SetFullXPath(index) {
+    var xpath = $(elements[index]).prop("tagName");
+    var parent = $(elements[index]).attr('parent_index');
+    if (parent != '#') {
+        return SetFullXPath(parent) + '/' + xpath;
+    }
+    else
+        return '//' + xpath;
+}
+
+function SetXPath(index) {
+    var xpath = $(elements[index]).prop("tagName");
+    var classes = [];
+    $.each(elements, function (i, e) {
+        if ($(e).prop("tagName") == xpath) {
+            classes.push(i);
+        }
+    });
+    var n = classes.indexOf(index) + 1;
+    return '//' + xpath + '[' + n + ']';
+}
+
 function SetNodes() {
     $("#element-list").children('div').remove();
-    $.each(elements, function (i, e) {
+    $.each(selected, function (i, e) {
         $("#element-list").append(AddElement2List(e, i));
     });
-    if (elements.length != 0)
+    if (selected.length != 0)
         currentNode(true);
 }
 
-function GetNodes(node) {
+function GetNodes(node, nodes, parent = '#') {
     node.children().each(function () {
-        var chosen = false;
-        bounds = $(this).attr('bounds');
-        if (typeof bounds != "undefined") {
-            var bound = bounds.match(/\d+/g);
+        $(this).attr('node_index', node_index);
+        $(this).attr('parent_index', parent);
+        node_index++;
+        nodes.push(this);
+        if ($(this).children.length > 0)
+            GetNodes($(this), nodes, node_index - 1);
+    });
+}
+
+function SelectNodes() {
+    $.each(elements, function (i, e) {
+        bound = GetBound($(e));
+        if (bound) {
             if (canvas_x > bound[0] && canvas_x < bound[2] && canvas_y > bound[1] && canvas_y < bound[3]) {
+                if (typeof $(this).attr("fullXpath") == "undefined") {
+                    $(this).attr("XPath", SetXPath(i));
+                    $(this).attr("fullXPath", SetFullXPath(i));
+                }
                 t_area = (bound[2] - bound[0]) * (bound[3] - bound[1])
                 if (area == 0) {
                     area = t_area;
-                    elements.push(this);
+                    selected.push(this);
                 }
                 else if (area < t_area)
-                    elements.push(this);
+                    selected.push(this);
                 else if (area == t_area) {
-                    if ($(this).attr("text") != "")
-                        elements.unshift(this);
+                    if (typeof $(this).attr("text") != "undefined" || typeof $(this).attr("content-desc") != "undefined" || typeof $(this).attr("label") != "undefined" || typeof $(this).attr("name") != "undefined")
+                        selected.unshift(this);
                     else {
-                        tmp_e = elements[0];
-                        elements.shift();
-                        elements.unshift(this);
-                        elements.unshift(tmp_e);
+                        tmp_e = selected[0];
+                        selected.shift();
+                        selected.unshift(this);
+                        selected.unshift(tmp_e);
                     }
                 }
                 else {
                     area = t_area;
-                    elements.unshift(this);
+                    selected.unshift(this);
                 }
             }
         }
-        if ($(this).children.length > 0)
-            GetNodes($(this));
     });
 }
 
 function AddElement2List(node, index) {
-    var el_class = $(node).attr("class");
-    var re_class = el_class.replace(/\./g, "_");
-    var instance = $(node).attr("instance");
-    var resourceid = $(node).attr("resource-id");
-    var text = $(node).attr("text");
-    var content = $(node).attr("content-desc");
-    var title = "[class]&nbsp;" + el_class + ":" + instance;
-    var attrs = "";
-    if (text != "")
-        title = "[text]&nbsp;" + text;
-    else if (content != "")
-        title = "[content-desc]&nbsp;" + content;
-    else if (resourceid != "")
-        title = "[resource-id]&nbsp;" + resourceid;
-    $.each(node.attributes, function (i, attrib) {
-        attrs += attrib.name + ": " + attrib.value + "</br>";
-    });
-    if (index == 0) {
-        var query = title.match(/\[(.*)\]\&nbsp\;(.*)/);
-        query_type = query[1];
-        query_name = query[2];
-        return "<div class=\"panel panel-default\" index=\"0\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+    var el_class = "";
+    var re_class = "";
+    var instance = "";
+    var resourceid = "";
+    var text = "";
+    var content = "";
+    if (platformName == 'Android') {
+        el_class = $(node).attr("class");
+        re_class = el_class.replace(/\./g, "_")
+        instance = $(node).attr("instance");
+        resourceid = $(node).attr("resource-id");
+        content = $(node).attr("content-desc");
+        text = $(node).attr("text");
     }
-    else
-        return "<div class=\"panel panel-default\" index=\"" + index + "\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\">" + attrs + "</div></div></div>";
+    else {
+        if ($(node).attr("visible") == "true") {
+            el_class = $(node).attr("type");
+            re_class = el_class;
+            text = $(node).attr("name");
+            content = $(node).attr("label");
+            instance = 0;
+        }
+    }
+    if (el_class) {
+        var title = "[class]&nbsp;" + el_class + ":" + instance;
+        var attrs = "";
+        if (text != "" && typeof text != "undefined")
+            title = "[text]&nbsp;" + text;
+        else if (content != "" && typeof content != "undefined")
+            title = "[text]&nbsp;" + content;
+        else if (resourceid != "" && typeof resourceid != "undefined")
+            title = "[resource-id]&nbsp;" + resourceid;
+        $.each(node.attributes, function (i, attrib) {
+            attrs += attrib.name + ":   " + attrib.value + "</br>";
+        });
+        if (index == 0) {
+            var query = title.match(/\[(.*)\]\&nbsp\;(.*)/);
+            query_type = query[1];
+            query_name = query[2];
+            return "<div class=\"panel panel-default\" index=\"0\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
+        }
+        else
+            return "<div class=\"panel panel-default\" index=\"" + index + "\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
+    }
 }
 
 function ActiveTarget(event) {
@@ -354,7 +455,7 @@ function ActiveTarget(event) {
     var query = $(event.target).text().match(/\[(.*)\]\s(.*)/);
     query_type = query[1];
     query_name = query[2];
-    DrawRect($(elements[index]).attr("bounds"));
+    DrawRect($(elements[index]));
     currentNode(true);
 }
 
@@ -379,10 +480,6 @@ function FindElement() {
                 selector = query_name;
                 break;
             case "text":
-                locator = "-android uiautomator";
-                selector = "new UiSelector().description(\"" + query_name + "\");new UiSelector().text(\"" + query_name + "\");"
-                break;
-            case "content-desc":
                 locator = "-android uiautomator";
                 selector = "new UiSelector().description(\"" + query_name + "\");new UiSelector().text(\"" + query_name + "\");"
                 break;
@@ -521,16 +618,16 @@ function AddBlock(type) {
     return block;
 }
 
-function DrawRect(bounds) {
-    if (typeof bounds != "undefined") {
+function DrawRect(node) {
+    if (typeof node != "undefined") {
         var color = document.getElementById("colorpicker").value;
         var can = document.getElementById("preview");
         var ctx = can.getContext("2d");
-        var bound = bounds.match(/\d+/g);
-        var x1 = can.width * bound[0] / parseInt(deviceInfo.deviceScreenSize.split("x")[0]);
-        var y1 = can.height * bound[1] / parseInt(deviceInfo.deviceScreenSize.split("x")[1]);
-        var x2 = can.width * bound[2] / parseInt(deviceInfo.deviceScreenSize.split("x")[0]);
-        var y2 = can.height * bound[3] / parseInt(deviceInfo.deviceScreenSize.split("x")[1]);
+        var bound = GetBound(node);
+        var x1 = can.width * bound[0] / parseInt(screen_w);
+        var y1 = can.height * bound[1] / parseInt(screen_h);
+        var x2 = can.width * bound[2] / parseInt(screen_w);
+        var y2 = can.height * bound[3] / parseInt(screen_h);
         can.width = can.width;
         ctx.drawImage(document.getElementById("preview-pic"), 0, 0, can.width, can.height);
         ctx.rect(x1, y1, x2 - x1, y2 - y1);
