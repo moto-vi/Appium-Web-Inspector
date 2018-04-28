@@ -7,12 +7,9 @@ var query_name = null;
 var query_type = null;
 var element_key = 0;
 var canvas_width = 0, canvas_height = 0;
-<<<<<<< HEAD
 var platformName;
 var screen_w, screen_h;
-=======
 var url = "http://127.0.0.1:4723/wd/hub/session/";
->>>>>>> 459dc1d8a48ef9de21d796b13f5ffc9369a8307c
 
 $("#button_create_session").click(function () {
     CreateSession();
