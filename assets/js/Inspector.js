@@ -9,6 +9,7 @@ var element_key = 0;
 var canvas_width = 0, canvas_height = 0;
 var platformName;
 var screen_w, screen_h;
+var image_base64;
 var url = "http://127.0.0.1:4723/wd/hub/session/";
 
 $("#button_create_session").click(function () {
@@ -233,8 +234,9 @@ function Screenshot() {
                 dataType: "json",
                 async: false,
                 success: (function (data) {
+                    image_base64 = data.value;
                     InitCanvas(canvas_height / canvas_width);
-                    Draw("data:image/png;base64," + data.value);
+                    Draw("data:image/png;base64," + image_base64);
                     GetPageSource();
                     currentNode(false);
                     ShowBlockly();
@@ -378,9 +380,9 @@ function SelectNodes() {
         bound = GetBound($(e));
         if (bound) {
             if (canvas_x > bound[0] && canvas_x < bound[2] && canvas_y > bound[1] && canvas_y < bound[3]) {
-                if (typeof $(this).attr("fullXpath") == "undefined") {
-                    $(this).attr("XPath", SetXPath(i));
-                    $(this).attr("fullXPath", SetFullXPath(i));
+                if (typeof $(this).attr("fullxpath") == "undefined") {
+                    $(this).attr("xpath", SetXPath(i));
+                    $(this).attr("fullxpath", SetFullXPath(i));
                 }
                 t_area = (bound[2] - bound[0]) * (bound[3] - bound[1])
                 if (area == 0) {
@@ -411,14 +413,14 @@ function SelectNodes() {
 function AddElement2List(node, index) {
     var el_class = "";
     var re_class = "";
-    var instance = "";
+    var c_index = "";
     var resourceid = "";
     var text = "";
     var content = "";
     if (platformName == 'Android') {
         el_class = $(node).attr("class");
         re_class = el_class.replace(/\./g, "_")
-        instance = $(node).attr("instance");
+        c_index = $(node).attr("instance");
         resourceid = $(node).attr("resource-id");
         content = $(node).attr("content-desc");
         text = $(node).attr("text");
@@ -429,11 +431,11 @@ function AddElement2List(node, index) {
             re_class = el_class;
             text = $(node).attr("name");
             content = $(node).attr("label");
-            instance = 0;
+            c_index = $(node).attr("xpath").match(/\[(\d+)\]$/)[1];
         }
     }
     if (el_class) {
-        var title = "[class]&nbsp;" + el_class + ":" + instance;
+        var title = "[class]&nbsp;" + el_class + ":" + c_index;
         var attrs = "";
         if (text != "" && typeof text != "undefined")
             title = "[text]&nbsp;" + text;
@@ -448,10 +450,10 @@ function AddElement2List(node, index) {
             var query = title.match(/\[(.*)\]\&nbsp\;(.*)/);
             query_type = query[1];
             query_name = query[2];
-            return "<div class=\"panel panel-default\" index=\"0\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
+            return "<div class=\"panel panel-default\" index=\"0\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + c_index + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + c_index + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
         }
         else
-            return "<div class=\"panel panel-default\" index=\"" + index + "\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + instance + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + instance + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
+            return "<div class=\"panel panel-default\" index=\"" + index + "\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + c_index + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + c_index + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
     }
 }
 
@@ -497,6 +499,20 @@ function FindElement() {
                 break;
         }
     }
+    else {
+        switch (query_type) {
+            case "text":
+                locator = 'id';
+                selector = query_name;
+                break;
+            case "class":
+            case "xpath":
+                locator = 'xpath';
+                var match = query_name.match(/(.*):(\d+)$/);
+                selector = '//' + match[1] + '[' + match[2] + ']';
+                break;
+        }
+    }
     return $.ajax({
         url: url + sessionId + "/elements",
         type: "POST",
@@ -519,22 +535,6 @@ function FindElement() {
 
 function Tap() {
     if (FindElement().status == 200) {
-        // $.ajax({
-        //     url: url + sessionId + "/element/" + element_key + "/click",
-        //     type: "POST",
-        //     dataType: "json",
-        //     async: false,
-        //     success: (function (data) {
-        //         Screenshot();
-        //         var parent = AddBlock('click');
-        //         var child = AddBlock('element');
-        //         parent.getInput('element').connection.connect(child.outputConnection);
-        //         AttachBlock(parent);
-        //     }),
-        //     error: (function (data) {
-        //         alert("Error!");
-        //     })
-        // });
         $.ajax({
             url: url + sessionId + "/touch/click",
             type: "POST",
@@ -554,40 +554,7 @@ function Tap() {
                 alert("Error!");
             })
         });
-        // var index = parseInt($(".list-group-item.active").parent().attr("index"));
-        // var bound = $(elements[index]).attr("bounds").match(/\d+/g);
-        // var x = (bound[2] - bound[0]) / 2 + Number(bound[0]);
-        // var y = (bound[3] - bound[1]) / 2 + Number(bound[1]);
-        // $.ajax({
-        //     url: url + sessionId + "/touch/perform",
-        //     type: "POST",
-        //     dataType: "json",
-        //     async: false,
-        //     data: {
-        //         actions: [
-        //             {
-        //                 action: "press",
-        //                 options: {
-        //                     x: x,
-        //                     y: y
-        //                 }
-        //             },
-        //             {
-        //                 action: "release"
-        //             }
-        //         ]
-        //     },
-        //     success: (function (data) {
-        //         Screenshot();
-        //         var parent = AddBlock('click');
-        //         var child = AddBlock('element');
-        //         parent.getInput('element').connection.connect(child.outputConnection);
-        //         AttachBlock(parent);
-        //     }),
-        //     error: (function (data) {
-        //         alert("Error!");
-        //     })
-        // });
+
     }
 }
 
@@ -603,18 +570,22 @@ function AddBlock(type) {
     block.render();
     if (type == 'element') {
         var text = $(".list-group-item.active").text();
-        var type = /\[(.*)\]/.exec(text)[1];
-        var value = /\]\s(.*)/.exec(text)[1];
+        var type = text.match(/\[(.*)\]/)[1];
+        var value = text.match(/\]\s(.*)/)[1];
         console.log(type + ":" + value)
         switch (type) {
             case "class":
-                type = "class";
+            case "xpath":
+                type = "xpath";
+                var match = value.match(/(.*):(\d+)$/);
+                console.log(match);
+                value = '//' + match[1] + '[' + match[2] + ']';
                 break;
             case "resource-id":
-                type = "id"
+                type = "id";
                 break;
             default:
-                type = "text"
+                type = "text";
                 break;
         }
         block.setFieldValue(type, 'type');
@@ -760,26 +731,23 @@ function importDom() {
     $("#script_name").val(file.name.replace(/\.xml$/, ""));
 }
 
-function downloadFile(event, fileName, content) {
-    if (fileName != ".py" && fileName != ".xml") {
-        var aLink = event.target;
-        var blob = new Blob([content]);
-        aLink.download = fileName;
-        aLink.href = URL.createObjectURL(blob);
-    }
-    else {
-        alert("Please enter the script name");
-        $("#script_name").select();
-    }
-}
-
 function clearWorkspace() {
     if (confirm("Are you sure to clear the blockly workspace?"))
         Blockly.mainWorkspace.clear();
 }
 
 function Enter() {
+    Tap();
     var text = prompt("Enter", "");
+    $.ajax({
+        url: url + sessionId + "/element/" + element_key + "/clear",
+        type: "POST",
+        dataType: "json",
+        async: false,
+        error: (function (data) {
+            alert("Error!");
+        })
+    });
     $.ajax({
         url: url + sessionId + "/element/" + element_key + "/value",
         type: "POST",
@@ -800,4 +768,27 @@ function Enter() {
             alert("Error!");
         })
     });
+}
+
+function DownloadZip(event) {
+    if ($('#script_name').val() != "") {
+        var zip = new JSZip();
+        zip.file($('#script_name').val() + '.xml', Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));
+        zip.file($('#script_name').val() + '.py', Blockly.Python.workspaceToCode(workspace));
+        var img = zip.folder("images");
+        img.file("screenshot.png", image_base64, { base64: true });
+        zip.generateAsync({ type: "blob" })
+            .then(function (content) {
+                // see FileSaver.js
+                // saveAs(content, $('#script_name').val() + ".zip");
+                var aLink = event.target;
+                var blob = new Blob([content]);
+                aLink.download = $('#script_name').val() + ".zip";
+                aLink.href = URL.createObjectURL(blob);
+            });
+    }
+    else {
+        alert("Please enter the script name");
+        $("#script_name").select();
+    }
 }

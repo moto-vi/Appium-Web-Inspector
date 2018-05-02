@@ -9,6 +9,8 @@
     <!-- Bootstrap -->
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <!-- JsZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <!-- Buttons libs -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Buttons/2.0.0/css/buttons.min.css">
     <!-- font-awesome - font icons -->
@@ -203,8 +205,7 @@
                     <input id="script_name" type="text" placeholder="*Script Name" style="font-size:18px;font-weight:500;"></input>
                     <input id="import_blockly" type="file" style="display: none;" accept="application/xml" onchange="importDom();"></input>
                     <button id="button_import_blockly" class="button" onclick="importer();">Import Blockly</button>
-                    <a id="button_export_blockly" class="button" onclick="downloadFile(event,$('#script_name').val()+'.xml', Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));">Export Blockly</a>
-                    <a id="button_export_script" class="button" onclick="downloadFile(event,$('#script_name').val()+'.py', Blockly.Python.workspaceToCode(workspace));">Export Script</a>
+                    <a id="button_export_script" class="button" onclick="DownloadZip(event);">Export</a>
                     <button id="button_clear_blockly" class="button" onclick="clearWorkspace();">Clear Blockly</button>
                     <div id="blocklyDiv" style="height: 80%;width: 100%;"></div>
                 </div>
