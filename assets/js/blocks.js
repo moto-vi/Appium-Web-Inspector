@@ -1,16 +1,45 @@
 Blockly.Blocks['element'] = {
   init: function() {
-    this.appendValueInput("index")
-        .setCheck("Number")
-        .appendField(new Blockly.FieldTextInput("element"), "name")
-        .appendField(":")
-        .appendField(new Blockly.FieldDropdown([["Text","text"], ["ID","id"], ["Class","class"], ["XPath","xpath"], ["CSS","css"]]), "type")
-        .appendField("=")
-        .appendField(new Blockly.FieldTextInput("value"), "value");
+    this.appendValueInput("element_type")
+        .setCheck("element_type")
+        .appendField(new Blockly.FieldTextInput("element"), "name");
     this.setInputsInline(false);
     this.setOutput(true, "element");
     this.setColour(200);
  this.setTooltip("FindElements(query_type, query_value, index[default:0])");
+ this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['element_type'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField(new Blockly.FieldDropdown([["text","text"], ["xpath","xpath"]]), "type")
+        .appendField("=")
+        .appendField(new Blockly.FieldTextInput("value"), "value");
+    this.setOutput(true, "element_type");
+    this.setColour(150);
+ this.setTooltip("element type");
+ this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['launcher'] = {
+  init: function() {
+    this.appendDummyInput()
+        .appendField("[START TEST]  on ")
+        .appendField(new Blockly.FieldDropdown([["Android","android"], ["iOS","ios"]]), "platform");
+    this.appendDummyInput()
+        .appendField("*Feature:")
+        .appendField(new Blockly.FieldTextInput("feature1"), "feature")
+        .appendField("*Scenario:")
+        .appendField(new Blockly.FieldTextInput("scenario1"), "scenario");
+    this.appendDummyInput()
+        .appendField("Tags:")
+        .appendField(new Blockly.FieldTextInput(""), "tags");
+    this.setNextStatement(true, null);
+    this.setColour(50);
+ this.setTooltip("Tags: @tag1 @tag2 ...");
  this.setHelpUrl("");
   }
 };
@@ -61,6 +90,10 @@ Blockly.Blocks['scroll_to'] = {
         .appendField("Scroll")
         .appendField(new Blockly.FieldDropdown([["up","up"], ["down","down"], ["left","left"], ["right","right"]]), "scrollto")
         .appendField("to");
+    this.appendDummyInput()
+        .appendField("within")
+        .appendField(new Blockly.FieldNumber(20), "timeout")
+        .appendField("s");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(0);
@@ -115,7 +148,7 @@ Blockly.Blocks['wait'] = {
   init: function() {
     this.appendDummyInput()
         .appendField("wait for")
-        .appendField(new Blockly.FieldTextInput("10"), "time")
+        .appendField(new Blockly.FieldNumber(20), "time")
         .appendField("s");
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
@@ -125,20 +158,18 @@ Blockly.Blocks['wait'] = {
   }
 };
 
-Blockly.Blocks['wait_for'] = {
+Blockly.Blocks['wait_until'] = {
   init: function() {
     this.appendValueInput("condition")
         .setCheck("Boolean")
-        .appendField("Wait for");
-    this.appendDummyInput()
-        .appendField("in")
-        .appendField(new Blockly.FieldTextInput("10"), "time")
-        .appendField("s");
+        .appendField("Wait")
+        .appendField(new Blockly.FieldTextInput("20"), "time")
+        .appendField("s until");
     this.setInputsInline(false);
     this.setPreviousStatement(true, null);
     this.setNextStatement(true, null);
     this.setColour(250);
- this.setTooltip("Wait for condition passed in 10s");
+ this.setTooltip("Wait for condition passed in x seconds");
  this.setHelpUrl("");
   }
 };
@@ -168,13 +199,31 @@ Blockly.Blocks['back'] = {
   }
 };
 
+Blockly.Blocks['repeat'] = {
+  init: function() {
+    this.appendValueInput("condition")
+        .setCheck("Boolean")
+        .appendField("Repeat until")
+        .appendField(new Blockly.FieldNumber(20), "timeout")
+        .appendField("s timeout or");
+    this.appendStatementInput("sentences")
+        .setCheck(null)
+        .appendField("do");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(250);
+ this.setTooltip("");
+ this.setHelpUrl("");
+  }
+};
+
 Blockly.Blocks['current_element'] = {
   init: function() {
     this.appendDummyInput()
-        .appendField("Current element");
+        .appendField("current element");
     this.setOutput(true, "element");
     this.setColour(200);
- this.setTooltip("Last selected element");
+ this.setTooltip("");
  this.setHelpUrl("");
   }
 };

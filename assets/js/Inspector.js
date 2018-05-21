@@ -2,7 +2,8 @@ var platform = "Android";
 var sessionId = 0;
 var canvas_x, canvas_y;
 var deviceInfo;
-var elements = [], selected = [], node_index = 0, area = 0;
+var elnodes = [], selected = [], node_index = 0, area = 0;
+var node_attrs = {};
 var query_name = null;
 var query_type = null;
 var element_key = 0;
@@ -11,6 +12,8 @@ var platformName;
 var screen_w, screen_h;
 var image_base64;
 var url = "http://127.0.0.1:4723/wd/hub/session/";
+var blocly_platform;
+var rec = true;
 
 $("#button_create_session").click(function () {
     CreateSession();
@@ -29,7 +32,11 @@ $("#button_colorpicker").click(function () {
 });
 
 $("#button_click").click(function () {
-    Tap();
+    var title = $('#current_node').text();
+    var query = title.match(/\[(.*)\]\s(.*)/);
+    query_type = query[1];
+    query_name = query[2];
+    Click();
 });
 
 $("#button_back").click(function () {
@@ -52,14 +59,41 @@ $("#button_scroll_down_lightly").click(function () {
     Scroll_Y(0.6, 0.4);
 });
 
-$("#button_wait_for").click(function () {
+$("#button_scroll_to_element").click(function () {
+    Scroll_Y(0.6, 0.4);
+});
+
+$("#button_clickby").click(function () {
+    $("#select_element_by").attr('style', 'display: inline-block;');
+    $("#select_scroll_to").attr('style', 'display: none;');
+});
+
+$("#button_scroll_to_element").click(function () {
+    $("#select_element_by").attr('style', 'display: inline-block;');
+    $("#select_scroll_to").attr('style', 'display: inline-block;');
+});
+
+$("#SelectorModal").find('.btn.btn-primary').click(function () {
+    query_type = $('#selector-type').val();
+    query_name = GetAttr(query_type);
+    if ($("#select_scroll_to").attr('style') == 'display: inline-block;') {
+        Scroll_To($('#selector-dir').val());
+    }
+    else {
+        Click();
+    }
+});
+
+$("#button_wait_until").click(function () {
     if ($(".list-group-item.active").text()) {
-        var parent = AddBlock('wait_for');
-        var child = AddBlock('status');
-        var grandchild = AddBlock('element');
-        child.getInput('element').connection.connect(grandchild.outputConnection);
-        parent.getInput('condition').connection.connect(child.outputConnection);
-        AttachBlock(parent);
+        var parent = AddBlock('wait_until');
+        if (parent) {
+            var child = AddBlock('status');
+            var grandchild = AddBlock('element');
+            child.getInput('element').connection.connect(grandchild.outputConnection);
+            parent.getInput('condition').connection.connect(child.outputConnection);
+            AttachBlock(parent);
+        }
     }
 });
 
@@ -71,14 +105,27 @@ $("#button_app").click(function () {
     $("#app").click();
 });
 
+$("#button_wait").click(function () {
+    var parent = AddBlock('wait');
+    if (parent) {
+        var text = prompt("How many seconds to wait (Seconds)", "");
+        if (!isNaN(text))
+            parent.setFieldValue(text, 'time')
+        AttachBlock(parent);
+    }
+});
+
 $('[data-toggle="tooltip"]').tooltip({
     trigger: 'hover'
+});
+
+$('#rec').change(function () {
+    rec = $('#rec').prop("checked");
 });
 
 function InitCanvas(scale) {
     canvas_width = $("#device_controler").width();
     canvas_height = canvas_width * parseFloat(scale);
-    //console.log(canvas_width, canvas_height)
     $("#preview").attr("width", canvas_width);
     $("#preview").attr("height", canvas_height);
     $("#preview-pic").attr("width", canvas_width);
@@ -86,7 +133,7 @@ function InitCanvas(scale) {
 }
 
 function CreateSession() {
-    platformName = $("select").val();
+    platformName = $("#Platform").val();
     var bool = true;
     var platformVersion = "7.0";
     var deviceName = "Android Device";
@@ -96,12 +143,11 @@ function CreateSession() {
     var app = "";
     var bundleid = "";
     var udid = "";
-    if ($("#device_name").val() && $("#os_version").val()) {
+    if ($("#device_name").val()) {
         deviceName = $("#device_name").val();
-        platformVersion = $("#os_version").val();
     }
     else {
-        alert("Please enter your device name and os version")
+        alert("Please enter your device name")
         bool = false;
         if (!$("#device_name").val())
             $("#device_name").select();
@@ -115,7 +161,6 @@ function CreateSession() {
             appActivity = $("#app_activity").val();
         if ($("#android_app").val())
             app = $("#android_app").val();
-
     }
     else {
         if ($("#ios_udid").val())
@@ -133,9 +178,7 @@ function CreateSession() {
                 {
                     newCommandTimeout: 600000,
                     platformName: platformName,
-                    platformVersion: platformVersion,
-                    deviceName: deviceName,
-                    automationName: 'Appium'
+                    deviceName: deviceName
                 }
         };
         if (app) {
@@ -154,6 +197,9 @@ function CreateSession() {
                 desiredcaps['desiredCapabilities']['appPackage'] = 'com.android.settings.Settings';
                 desiredcaps['desiredCapabilities']['appActivity'] = 'com.android.settings';
             }
+        }
+        if ($("#os_version").val()) {
+            desiredcaps['desiredCapabilities']['platformVersion'] = $("#os_version").val();
         }
     }
     else {
@@ -292,8 +338,8 @@ function GetPageSource() {
                 screen_h = $(node).attr('height');
             }
             node_index = 0;
-            elements.splice(0, elements.length);
-            GetNodes(pagesource, elements);
+            elnodes.splice(0, elnodes.length);
+            GetNodes(pagesource, elnodes);
         }),
         error: (function (data) {
             alert("Error!");
@@ -307,14 +353,14 @@ function GetElements() {
         selected = [], area = 0;
         SelectNodes();
         SetNodes();
-        DrawRect($(selected[0]));
+        DrawRect(selected[0]);
     }
 };
 
 function GetBound(node) {
     if (platformName == "Android") {
-        if (node.attr('enabled') == 'true') {
-            bounds = node.attr('bounds');
+        if ($(node).attr('enabled') == 'true') {
+            bounds = $(node).attr('bounds');
             return bounds.match(/\d+/g);
         }
         else
@@ -334,8 +380,8 @@ function GetBound(node) {
 }
 
 function SetFullXPath(index) {
-    var xpath = $(elements[index]).prop("tagName");
-    var parent = $(elements[index]).attr('parent_index');
+    var xpath = $(elnodes[index]).prop("tagName");
+    var parent = $(elnodes[index]).attr('parent_index');
     if (parent != '#') {
         return SetFullXPath(parent) + '/' + xpath;
     }
@@ -343,17 +389,17 @@ function SetFullXPath(index) {
         return '//' + xpath;
 }
 
-function SetXPath(index) {
-    var xpath = $(elements[index]).prop("tagName");
-    var classes = [];
-    $.each(elements, function (i, e) {
-        if ($(e).prop("tagName") == xpath) {
-            classes.push(i);
-        }
-    });
-    var n = classes.indexOf(index) + 1;
-    return '//' + xpath + '[' + n + ']';
-}
+// function SetXPath(index) {
+//     var xpath = $(elnodes[index]).prop("tagName");
+//     var classes = [];
+//     $.each(elnodes, function (i, e) {
+//         if ($(e).prop("tagName") == xpath) {
+//             classes.push(i);
+//         }
+//     });
+//     var n = classes.indexOf(index) + 1;
+//     return '(//' + xpath + ')[' + n + ']';
+// }
 
 function SetNodes() {
     $("#element-list").children('div').remove();
@@ -376,13 +422,13 @@ function GetNodes(node, nodes, parent = '#') {
 }
 
 function SelectNodes() {
-    $.each(elements, function (i, e) {
-        bound = GetBound($(e));
+    $.each(elnodes, function (i, e) {
+        bound = GetBound(e);
         if (bound) {
             if (canvas_x > bound[0] && canvas_x < bound[2] && canvas_y > bound[1] && canvas_y < bound[3]) {
                 if (typeof $(this).attr("fullxpath") == "undefined") {
-                    $(this).attr("xpath", SetXPath(i));
-                    $(this).attr("fullxpath", SetFullXPath(i));
+                    // $(this).attr("xpath", SetXPath(i));
+                    $(this).attr("xpath", SetFullXPath(i));
                 }
                 t_area = (bound[2] - bound[0]) * (bound[3] - bound[1])
                 if (area == 0) {
@@ -408,6 +454,17 @@ function SelectNodes() {
             }
         }
     });
+}
+
+function GetAttr(type) {
+    if (type == 'xpath')
+        return node_attrs['xpath'];
+    else {
+        if (platformName == 'Android')
+            return (node_attrs['text'] || node_attrs['content-desc']);
+        else
+            return node_attrs['id'];
+    }
 }
 
 function AddElement2List(node, index) {
@@ -436,24 +493,21 @@ function AddElement2List(node, index) {
     }
     if (el_class) {
         var title = "[class]&nbsp;" + el_class + ":" + c_index;
-        var attrs = "";
         if (text != "" && typeof text != "undefined")
             title = "[text]&nbsp;" + text;
         else if (content != "" && typeof content != "undefined")
             title = "[text]&nbsp;" + content;
         else if (resourceid != "" && typeof resourceid != "undefined")
             title = "[resource-id]&nbsp;" + resourceid;
-        $.each(node.attributes, function (i, attrib) {
-            attrs += attrib.name + ":   " + attrib.value + "</br>";
-        });
         if (index == 0) {
             var query = title.match(/\[(.*)\]\&nbsp\;(.*)/);
             query_type = query[1];
             query_name = query[2];
-            return "<div class=\"panel panel-default\" index=\"0\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + c_index + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + c_index + "\" class=\"panel-collapse collapse in\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
+            AddAttributes(node);
+            return "<div class=\"panel panel-default\" index=\"0\"><div class=\"list-group-item active\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" href=\"\" style=\"color:black;font-weight:bold;\">" + title + "</a></div></div>";
         }
         else
-            return "<div class=\"panel panel-default\" index=\"" + index + "\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" data-parent=\"#element-list\" href=\"#collapse_" + re_class + "_" + c_index + "\" style=\"color:black;font-weight:bold;\">" + title + "</a></div><div id=\"collapse_" + re_class + "_" + c_index + "\" class=\"panel-collapse collapse\"><div class=\"panel-body\" style=\"word-break: break-all;\">" + attrs + "</div></div></div>";
+            return "<div class=\"panel panel-default\" index=\"" + index + "\"><div class=\"list-group-item\"><a data-toggle=\"collapse\" onclick=\"ActiveTarget(event)\" href=\"\" style=\"color:black;font-weight:bold;\">" + title + "</a></div></div>";
     }
 }
 
@@ -464,8 +518,19 @@ function ActiveTarget(event) {
     var query = $(event.target).text().match(/\[(.*)\]\s(.*)/);
     query_type = query[1];
     query_name = query[2];
-    DrawRect($(elements[index]));
+    DrawRect(selected[index]);
+    AddAttributes(selected[index]);
     currentNode(true);
+}
+
+function AddAttributes(node) {
+    var attrs = "";
+    $.each(node.attributes, function (i, attrib) {
+        attrs += "<tr><td>" + attrib.name + "</td><td style=\"word-break: break-all;\">" + attrib.value + "</td></tr>";
+        node_attrs[attrib.name] = attrib.value;
+    });
+    $("#attributes").empty();
+    $("#attributes").append(attrs);
 }
 
 function currentNode(bool) {
@@ -497,6 +562,9 @@ function FindElement() {
                 var value = query_name.match(/(.*)\:(.*)/);
                 selector = "new UiSelector().className(\"" + value[1] + "\").instance(" + value[2] + ");";
                 break;
+            case "xpath":
+                locator = "xpath"
+                selector = query_name;
         }
     }
     else {
@@ -508,8 +576,7 @@ function FindElement() {
             case "class":
             case "xpath":
                 locator = 'xpath';
-                var match = query_name.match(/(.*):(\d+)$/);
-                selector = '//' + match[1] + '[' + match[2] + ']';
+                selector = GetAttr(locator);
                 break;
         }
     }
@@ -523,8 +590,12 @@ function FindElement() {
         },
         async: false,
         success: (function (data) {
-            if (typeof data.value != "undefined") {
+            if (typeof data.value != "undefined" && data.value) {
                 element_key = data.value[0].ELEMENT;
+            }
+            else {
+                alert('No elements found.')
+                element_key = null;
             }
         }),
         error: (function (data) {
@@ -533,8 +604,8 @@ function FindElement() {
     });
 }
 
-function Tap() {
-    if (FindElement().status == 200) {
+function Click() {
+    if (FindElement().status == 200 && element_key) {
         $.ajax({
             url: url + sessionId + "/touch/click",
             type: "POST",
@@ -546,15 +617,16 @@ function Tap() {
             success: (function (data) {
                 Screenshot();
                 var parent = AddBlock('click');
-                var child = AddBlock('element');
-                parent.getInput('element').connection.connect(child.outputConnection);
-                AttachBlock(parent);
+                if (parent) {
+                    var child = AddBlock('element', query_type);
+                    parent.getInput('element').connection.connect(child.outputConnection);
+                    AttachBlock(parent);
+                }
             }),
             error: (function (data) {
                 alert("Error!");
             })
         });
-
     }
 }
 
@@ -564,36 +636,44 @@ function AttachBlock(block) {
         list[0].lastConnectionInStack_().connect(block.previousConnection);
 }
 
-function AddBlock(type) {
-    var block = workspace.newBlock(type);
-    block.initSvg();
-    block.render();
-    if (type == 'element') {
-        var text = $(".list-group-item.active").text();
-        var type = text.match(/\[(.*)\]/)[1];
-        var value = text.match(/\]\s(.*)/)[1];
-        console.log(type + ":" + value)
-        switch (type) {
-            case "class":
-            case "xpath":
-                type = "xpath";
-                var match = value.match(/(.*):(\d+)$/);
-                console.log(match);
-                value = '//' + match[1] + '[' + match[2] + ']';
-                break;
-            case "resource-id":
-                type = "id";
-                break;
-            default:
-                type = "text";
-                break;
+function AddBlock(type, e_type = '') {
+    if (rec) {
+        var block = workspace.newBlock(type);
+        if (type == 'element') {
+            var text = $("#current_node").text();
+            if (e_type)
+                type = e_type
+            else
+                type = text.match(/\[(.*)\]/)[1];
+            var value = text.match(/\]\s(.*)/)[1];
+            switch (type) {
+                case "class":
+                case "xpath":
+                    type = 'xpath';
+                    value = GetAttr(type);
+                    break;
+                case "resource-id":
+                    type = "id";
+                    break;
+                default:
+                    type = "text";
+                    break;
+            }
+            var element_type = AddBlock('element_type');
+            element_type.setFieldValue(type, 'type');
+            element_type.setFieldValue(value, 'value');
+            block.getInput('element_type').connection.connect(element_type.outputConnection);
+            if (type == "text")
+                block.setFieldValue(value, 'name');
+            else
+                block.setFieldValue(node_attrs['xpath'], 'name');
         }
-        block.setFieldValue(type, 'type');
-        block.setFieldValue(value, 'value');
-        if (type == "text")
-            block.setFieldValue(value, 'name');
+        block.initSvg();
+        block.render();
+        return block;
     }
-    return block;
+    else
+        return null;
 }
 
 function DrawRect(node) {
@@ -625,7 +705,8 @@ function Back() {
             success: (function (data) {
                 Screenshot();
                 var parent = AddBlock('back');
-                AttachBlock(parent);
+                if (parent)
+                    AttachBlock(parent);
             }),
             error: (function (data) {
                 alert("Error!");
@@ -671,12 +752,14 @@ function Scroll_Y(start, offset) {
             success: (function (data) {
                 Screenshot();
                 var e = AddBlock("scroll");
-                e.setFieldValue("quickly", "weight");
-                if (start < offset)
-                    e.setFieldValue("up", "scroll");
-                else
-                    e.setFieldValue("down", "scroll");
-                AttachBlock(e);
+                if (e) {
+                    e.setFieldValue("quickly", "weight");
+                    if (start < offset)
+                        e.setFieldValue("up", "scroll");
+                    else
+                        e.setFieldValue("down", "scroll");
+                    AttachBlock(e);
+                }
             }),
             error: (function (data) {
                 alert("Error!");
@@ -685,9 +768,21 @@ function Scroll_Y(start, offset) {
     }
 }
 
+function Scroll_To(dir) {
+    if (sessionId != 0) {
+        var parent = AddBlock('scroll_to');
+        if (parent) {
+            parent.setFieldValue(dir, 'scrollto');
+            var child = AddBlock('element', query_type);
+            parent.getInput('element').connection.connect(child.outputConnection);
+            AttachBlock(parent);
+        }
+    }
+}
+
 function ShowBlockly(event) {
     $("#blocklyModule").css("display", "inline");
-    $("#element-list").css("display", "none");
+    $("#selected-list").css("display", "none");
     $("li.active").attr("class", "noactive");
     $("a:contains('Blockly')").parent().attr("class", "active");
     Blockly.mainWorkspace.render();
@@ -695,7 +790,7 @@ function ShowBlockly(event) {
 
 function ShowNodes(event) {
     $("#blocklyModule").css("display", "none");
-    $("#element-list").css("display", "inline");
+    $("#selected-list").css("display", "inline");
     $("li.active").attr("class", "noactive");
     $("a:contains('Nodes')").parent().attr("class", "active");
     SetNodes();
@@ -721,7 +816,6 @@ function importDom() {
     var fileReader = new FileReader();
     fileReader.onload = function (fileLoadedEvent) {
         var text = fileLoadedEvent.target.result;
-        console.log(text);
         var dom = Blockly.Xml.textToDom(text);
         Blockly.mainWorkspace.clear();
         Blockly.Xml.domToWorkspace(Blockly.mainWorkspace, dom);
@@ -737,55 +831,70 @@ function clearWorkspace() {
 }
 
 function Enter() {
-    Tap();
-    var text = prompt("Enter", "");
-    $.ajax({
-        url: url + sessionId + "/element/" + element_key + "/clear",
-        type: "POST",
-        dataType: "json",
-        async: false,
-        error: (function (data) {
-            alert("Error!");
-        })
-    });
-    $.ajax({
-        url: url + sessionId + "/element/" + element_key + "/value",
-        type: "POST",
-        dataType: "json",
-        async: false,
-        data: {
-            value: text
-        },
-        success: (function (data) {
-            Screenshot();
-            var parent = AddBlock('enter');
-            parent.setFieldValue(text, 'text');
-            var child = AddBlock('element');
-            parent.getInput('element').connection.connect(child.outputConnection);
-            AttachBlock(parent);
-        }),
-        error: (function (data) {
-            alert("Error!");
-        })
-    });
+    if (Click().status == 200) {
+        var text = prompt("Enter", "");
+        $.ajax({
+            url: url + sessionId + "/element/" + element_key + "/clear",
+            type: "POST",
+            dataType: "json",
+            async: false,
+            error: (function (data) {
+                alert("Error!");
+            })
+        });
+        $.ajax({
+            url: url + sessionId + "/element/" + element_key + "/value",
+            type: "POST",
+            dataType: "json",
+            async: false,
+            data: {
+                value: text
+            },
+            success: (function (data) {
+                Screenshot();
+                var parent = AddBlock('enter');
+                if (parent) {
+                    parent.setFieldValue(text, 'text');
+                    var child = AddBlock('element', 'xpath');
+                    parent.getInput('element').connection.connect(child.outputConnection);
+                    AttachBlock(parent);
+                }
+            }),
+            error: (function (data) {
+                alert("Error!");
+            })
+        });
+    }
 }
 
 function DownloadZip(event) {
+    check_blockly = true;
+    elements = {};
     if ($('#script_name').val() != "") {
         var zip = new JSZip();
+        zip.file($('#script_name').val() + '.feature', Blockly.Python.workspaceToCode(workspace));
         zip.file($('#script_name').val() + '.xml', Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace)));
-        zip.file($('#script_name').val() + '.py', Blockly.Python.workspaceToCode(workspace));
-        var img = zip.folder("images");
-        img.file("screenshot.png", image_base64, { base64: true });
-        zip.generateAsync({ type: "blob" })
-            .then(function (content) {
-                // see FileSaver.js
-                // saveAs(content, $('#script_name').val() + ".zip");
-                var aLink = event.target;
-                var blob = new Blob([content]);
-                aLink.download = $('#script_name').val() + ".zip";
-                aLink.href = URL.createObjectURL(blob);
-            });
+        $.each(elements, function (name, value) {
+            if (name == value[1] && value[0] == 'text') {
+                delete elements[name];
+            }
+        });
+        var json = {};
+        json[blocly_platform] = elements;
+        zip.file($('#script_name').val() + '.json', JSON.stringify(json));
+        if (check_blockly) {
+            var img = zip.folder("images");
+            img.file("screenshot.png", image_base64, { base64: true });
+            zip.generateAsync({ type: "blob" })
+                .then(function (content) {
+                    // see FileSaver.js
+                    // saveAs(content, $('#script_name').val() + ".zip");
+                    var aLink = event.target;
+                    var blob = new Blob([content]);
+                    aLink.download = $('#script_name').val() + ".zip";
+                    aLink.href = URL.createObjectURL(blob);
+                });
+        }
     }
     else {
         alert("Please enter the script name");
