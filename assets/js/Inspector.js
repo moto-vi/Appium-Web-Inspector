@@ -59,10 +59,6 @@ $("#button_scroll_down_lightly").click(function () {
     Scroll_Y(0.6, 0.4);
 });
 
-$("#button_scroll_to_element").click(function () {
-    Scroll_Y(0.6, 0.4);
-});
-
 $("#button_clickby").click(function () {
     $("#select_element_by").attr('style', 'display: inline-block;');
     $("#select_scroll_to").attr('style', 'display: none;');
