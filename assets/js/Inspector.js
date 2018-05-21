@@ -864,7 +864,6 @@ function Enter() {
 }
 
 function DownloadZip(event) {
-    check_blockly = true;
     elements = {};
     if ($('#script_name').val() != "") {
         var zip = new JSZip();
@@ -878,19 +877,13 @@ function DownloadZip(event) {
         var json = {};
         json[blocly_platform] = elements;
         zip.file($('#script_name').val() + '.json', JSON.stringify(json));
-        if (check_blockly) {
-            var img = zip.folder("images");
-            img.file("screenshot.png", image_base64, { base64: true });
-            zip.generateAsync({ type: "blob" })
-                .then(function (content) {
-                    // see FileSaver.js
-                    // saveAs(content, $('#script_name').val() + ".zip");
-                    var aLink = event.target;
-                    var blob = new Blob([content]);
-                    aLink.download = $('#script_name').val() + ".zip";
-                    aLink.href = URL.createObjectURL(blob);
-                });
-        }
+        var img = zip.folder("images");
+        img.file("screenshot.png", image_base64, { base64: true });
+        zip.generateAsync({ type: "blob" })
+            .then(function (content) {
+                // see FileSaver.js
+                saveAs(content, $('#script_name').val() + ".zip");
+            });
     }
     else {
         alert("Please enter the script name");
