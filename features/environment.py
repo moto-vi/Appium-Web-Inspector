@@ -2,7 +2,7 @@ from appium import webdriver
 # from browserstack.local import Local
 import os, json
 
-isLocal = False
+isLocal = True
 
 DEFAULT_CONFIG = 'config/default.json' if not isLocal else 'config/local.json'
 CONFIG_FILE = os.environ['CONFIG_FILE'] if 'CONFIG_FILE' in os.environ else DEFAULT_CONFIG
