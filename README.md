@@ -16,7 +16,7 @@
     + Open the terminal or cmd:
     + Install appium using npm tool from nodejs.
 +     npm install -g appium
-3. **Android Studio && SDK *(For windows or mac os)***
+3. **Android Studio & SDK *(For windows or mac os)***
     + https://developer.android.com/studio/
 4. **iOS SDK & Xcode *(Only for mac os)***
     + Download in app store
