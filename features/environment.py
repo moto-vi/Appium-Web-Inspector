@@ -5,14 +5,20 @@ import os, json
 isLocal = True
 
 DEFAULT_CONFIG = 'config/default.json' if not isLocal else 'config/local.json'
-CONFIG_FILE = os.environ['CONFIG_FILE'] if 'CONFIG_FILE' in os.environ else DEFAULT_CONFIG
+CONFIG_FILE = os.environ[
+    'CONFIG_FILE'] if 'CONFIG_FILE' in os.environ else DEFAULT_CONFIG
 TASK_ID = int(os.environ['TASK_ID']) if 'TASK_ID' in os.environ else 0
 
 with open(CONFIG_FILE) as data_file:
     CONFIG = json.load(data_file)
 
-BROWSERSTACK_USERNAME = os.environ['BROWSERSTACK_USERNAME'] if 'BROWSERSTACK_USERNAME' in os.environ else CONFIG['user']
-BROWSERSTACK_ACCESS_KEY = os.environ['BROWSERSTACK_ACCESS_KEY'] if 'BROWSERSTACK_ACCESS_KEY' in os.environ else CONFIG['key']
+if not isLocal:
+    BROWSERSTACK_USERNAME = os.environ[
+        'BROWSERSTACK_USERNAME'] if 'BROWSERSTACK_USERNAME' in os.environ else CONFIG[
+            'user']
+    BROWSERSTACK_ACCESS_KEY = os.environ[
+        'BROWSERSTACK_ACCESS_KEY'] if 'BROWSERSTACK_ACCESS_KEY' in os.environ else CONFIG[
+            'key']
 
 # bs_local = None
 
@@ -48,6 +54,7 @@ BROWSERSTACK_ACCESS_KEY = os.environ['BROWSERSTACK_ACCESS_KEY'] if 'BROWSERSTACK
 #     context.browser.quit()
 #     stop_local()
 
+
 def before_all(context):
     desired_capabilities = CONFIG['environments'][TASK_ID]
 
@@ -55,20 +62,20 @@ def before_all(context):
         if key not in desired_capabilities:
             desired_capabilities[key] = CONFIG["capabilities"][key]
 
-    if(isLocal):
+    if (isLocal):
         context.driver = webdriver.Remote(
             desired_capabilities=desired_capabilities,
-            command_executor="http://localhost:4723/wd/hub"
-        )
+            command_executor="http://localhost:4723/wd/hub")
     else:
         context.driver = webdriver.Remote(
             desired_capabilities=desired_capabilities,
-            command_executor="http://%s:%s@hub-cloud.browserstack.com/wd/hub" % (BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY)
-        )
+            command_executor="http://%s:%s@hub-cloud.browserstack.com/wd/hub" %
+            (BROWSERSTACK_USERNAME, BROWSERSTACK_ACCESS_KEY))
+
 
 def after_all(context):
     context.driver.quit()
 
+
 def before_feature(context, feature):
     context.cur_feature = feature.name
-    

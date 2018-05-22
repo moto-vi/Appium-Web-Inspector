@@ -55,9 +55,9 @@ def scrollPage(dir, str):
     x = driver.get_window_size()['width']
     y = driver.get_window_size()['height']
     if (vert):
-        driver.swipe(0.5 * x, start * y, 0.5 * x, offset * y, 500)
+        driver.swipe(0.5 * x, start * y, 0.5 * x, offset * y, 800)
     else:
-        driver.swipe(0.5 * x, start * y, 0.5 * x, offset * y, 500)
+        driver.swipe(0.5 * x, start * y, 0.5 * x, offset * y, 800)
     time.sleep(0.5)
 
 
@@ -107,7 +107,7 @@ def step_impl(context, dir, element, timeout):
             element = elements[0]
             location = element.location
             size = element.size
-            interval = 2
+            interval = 1.5
             # Android Hybrid App
             check = {
                 'up': [
