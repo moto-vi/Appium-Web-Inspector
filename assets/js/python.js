@@ -73,7 +73,7 @@ Blockly.Python['scroll_to'] = function (block) {
   var value_element = Blockly.Python.valueToCode(block, 'element', Blockly.Python.ORDER_ATOMIC);
   var number_timeout = block.getFieldValue('timeout');
   // TODO: Assemble Python into code variable.
-  var code = 'Then I scroll ' + dropdown_scrollto + ' to the ' + value_element + ' within ' + number_timeout + 's\n';
+  var code = 'Then I scroll ' + dropdown_scrollto + ' to ' + value_element + ' within ' + number_timeout + 's\n';
   if (!value_element)
     alert("The block 'scroll_to' lacks a target element.");
   else
