@@ -98,7 +98,7 @@ def step_impl(context, dir, str):
 def step_impl(context, dir, element, timeout):
     startTime = time.time()
     found = False
-    interval = 1.5
+    interval = 0.5
     while (startTime + float(timeout) > time.time()):
         locator = getLocator(element)
         elements = driver.find_elements(locator[0], locator[1])
@@ -107,6 +107,7 @@ def step_impl(context, dir, element, timeout):
             element = elements[0]
             location = element.location
             size = element.size
+            interval = 2
             # Android Hybrid App
             check = {
                 'up': [
